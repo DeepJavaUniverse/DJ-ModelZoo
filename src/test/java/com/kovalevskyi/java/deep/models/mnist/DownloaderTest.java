@@ -6,6 +6,7 @@ import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertFalse;
 
 public class DownloaderTest {
+    
     @Test
     public void name() {
         Downloader.clearDownloadedFiles();
