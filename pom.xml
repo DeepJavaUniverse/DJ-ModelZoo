@@ -7,6 +7,8 @@
     <groupId>com.kovalevskyi.java.deep</groupId>
     <artifactId>models</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
     <build>
         <plugins>
             <plugin>
@@ -21,11 +23,13 @@
         </plugins>
     </build>
 
-    <modules>
-        <module>DJ-core</module>
-    </modules>
-
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/commons-io/commons-io -->
+        <dependency>
+            <groupId>com.kovalevskyi.java.deep</groupId>
+            <artifactId>core</artifactId>
+            <version>0.1-SNAPSHOT</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/commons-io/commons-io -->
         <dependency>
             <groupId>commons-io</groupId>
