@@ -1,0 +1,3 @@
+[submodule "DJ-core"]
+	path = DJ-core
+	url = https://github.com/DeepJavaUniverse/DJ-core.git
