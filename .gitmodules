@@ -1,3 +1,6 @@
 [submodule "DJ-core"]
 	path = DJ-core
 	url = https://github.com/DeepJavaUniverse/DJ-core.git
+[submodule "mnist-reader"]
+	path = mnist-reader
+	url = https://github.com/jeffgriffith/mnist-reader.git

@@ -29,7 +29,7 @@ public abstract class Downloader {
     private static final File MNIST_TEST_SET_IMAGES_ZIP_FILE
             = Paths.get(TMP_DIR_PATH, "test-images.gz").toFile();
     private static final File MNIST_TEST_SET_LABELS_ZIP_FILE
-            = Paths.get(TMP_DIR_PATH, "test-images.gz").toFile();
+            = Paths.get(TMP_DIR_PATH, "test-labels.gz").toFile();
     
     public static final File MNIST_TRAIN_SET_IMAGES_FILE
             = Paths.get(TMP_DIR_PATH, "train-images").toFile();
@@ -38,11 +38,17 @@ public abstract class Downloader {
     public static final File MNIST_TEST_SET_IMAGES_FILE
             = Paths.get(TMP_DIR_PATH, "test-images").toFile();
     public static final File MNIST_TEST_SET_LABELS_FILE
-            = Paths.get(TMP_DIR_PATH, "test-images").toFile();
+            = Paths.get(TMP_DIR_PATH, "test-labels").toFile();
 
     private Downloader() { }
 
     public static void downloadMnist() {
+        if (MNIST_TRAIN_SET_IMAGES_FILE.exists() &&
+                MNIST_TRAIN_SET_LABELS_FILE.exists() &&
+                MNIST_TEST_SET_IMAGES_FILE.exists() &&
+                MNIST_TEST_SET_LABELS_FILE.exists()) {
+            return;
+        }
         final URL trainSetImages;
         final URL trainSetLabels;
         final URL testSetImages;

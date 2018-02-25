@@ -19,5 +19,11 @@ jobs:
       - run: git submodule update --init --recursive
 
       # run tests!
-      - run: cd DJ-core && mvn install -DskipTests && cd .. && mvn test
+      - run: cd DJ-core
+      - run: mvn install -DskipTests
+      - run: cd ..
+      - run: cd mnist-reader
+      - run: mvn install -DskipTests
+      - run: cd ..
+      - run: mvn test
 
