@@ -11,7 +11,6 @@ import mnist.MnistReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.ForkJoinPool;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -24,7 +23,6 @@ public class MnistTrainer {
         System.out.println("done\n");
 
         final Random random = new Random();
-        final ForkJoinPool forkJoinPool = new ForkJoinPool();
 
         System.out.println("Creating network");
         List<Neuron> inputLayer = createLayer(InputNeuron::new, 784);
@@ -33,7 +31,6 @@ public class MnistTrainer {
                     new ConnectedNeuron
                             .Builder()
                             .activationFunction(new Relu())
-                            .forkJoinPool(forkJoinPool)
                             .build(),
                     10);
         List<Neuron> outputLayer
@@ -41,7 +38,6 @@ public class MnistTrainer {
                     new ConnectedNeuron
                             .Builder()
                             .activationFunction(new Sigmoid())
-                            .forkJoinPool(forkJoinPool)
                             .build(),
                     10);
 
@@ -82,13 +78,14 @@ public class MnistTrainer {
             final List<Neuron> outputLayer,
             final int[][] images,
             final int[] labels) {
-        for (int imageIndex = 0; imageIndex < images.length; imageIndex++) {
-            System.out.printf("Training progress: %f\n", (double)imageIndex/(double)images.length);
-            final int[] image = images[imageIndex];
-            for (int i = 0; i < image.length; i++) {
-                final Neuron inputNeuron = inputLayer.get(i);
-                inputNeuron.forwardSignalReceived(null, (double) image[i]);
+        for (int imageIndex = 0; imageIndex < 1000; imageIndex++) {
+            if (imageIndex % 100 == 0) {
+                System.out.printf("Training progress: %d\n", (int)(((double) imageIndex / (double) images.length) * 100.));
             }
+            final int[] image = images[imageIndex];
+            IntStream.range(0, image.length).forEach(i ->
+                inputLayer.get(i).forwardSignalReceived(null, (double) image[i])
+            );
             for (int i = 0; i < 10; i++) {
                 final double actualValue = ((ConnectedNeuron)outputLayer.get(i)).getForwardResult();
                 final double expectedResult = labels[imageIndex] == i ? 1.0 : 0.0;
