@@ -17,7 +17,7 @@ import java.util.stream.IntStream;
 
 public class MnistTrainer {
 
-    public static void trainMnistNN() {
+    public static void trainMnistNN(final boolean debug) {
         System.out.println("Downloading MNIst images");
         Downloader.downloadMnist();
         System.out.println("done\n");
@@ -31,13 +31,15 @@ public class MnistTrainer {
                     new ConnectedNeuron
                             .Builder()
                             .activationFunction(new Relu())
+                            .debug(debug)
                             .build(),
                     10);
         List<Neuron> outputLayer
                 = createLayer(() ->
                     new ConnectedNeuron
                             .Builder()
-                            .activationFunction(new Sigmoid())
+                            .activationFunction(new Sigmoid(false))
+                            .debug(debug)
                             .build(),
                     10);
 
@@ -84,12 +86,12 @@ public class MnistTrainer {
             }
             final int[] image = images[imageIndex];
             IntStream.range(0, image.length).forEach(i ->
-                inputLayer.get(i).forwardSignalReceived(null, (double) image[i])
+                inputLayer.get(i).forwardSignalReceived(null, (double) image[i] / 256.)
             );
             for (int i = 0; i < 10; i++) {
                 final double actualValue = ((ConnectedNeuron)outputLayer.get(i)).getForwardResult();
                 final double expectedResult = labels[imageIndex] == i ? 1.0 : 0.0;
-                outputLayer.get(0).backwardSignalReceived(2. * (expectedResult - actualValue));
+                outputLayer.get(i).backwardSignalReceived(2. * (expectedResult - actualValue));
             }
             inputLayer.forEach(Neuron::forwardInvalidate);
         }

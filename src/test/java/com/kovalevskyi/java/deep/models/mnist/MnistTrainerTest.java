@@ -10,6 +10,6 @@ public class MnistTrainerTest {
     @Test
     @Ignore
     public void testTrainMnist() {
-        MnistTrainer.trainMnistNN();
+        MnistTrainer.trainMnistNN(true);
     }
 }
