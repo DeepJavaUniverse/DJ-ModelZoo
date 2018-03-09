@@ -23,6 +23,7 @@ public class MnistTrainer {
         System.out.println("done\n");
 
         final Random random = new Random();
+        final double learningRate = 0.0001;
 
         System.out.println("Creating network");
         List<Neuron> inputLayer = createLayer(InputNeuron::new, 784);
@@ -32,18 +33,20 @@ public class MnistTrainer {
                             .Builder()
                             .activationFunction(new Relu())
                             .debug(debug)
+                            .learningRate(learningRate)
                             .build(),
                     10);
         List<Neuron> outputLayer
                 = createLayer(() ->
                     new ConnectedNeuron
                             .Builder()
-                            .activationFunction(new Sigmoid(false))
+                            .activationFunction(new Sigmoid(true))
                             .debug(debug)
+                            .learningRate(learningRate)
                             .build(),
                     10);
 
-        inputLayer.stream().forEach(inputNeuron -> {
+        inputLayer.stream().forEach(inputNeuron -> {                                                       
             hiddenLayer.stream().forEach(hiddenNeuron -> {
                 inputNeuron.connect(hiddenNeuron, random.nextDouble());
             });
@@ -69,9 +72,12 @@ public class MnistTrainer {
         System.out.println("done\n");
         
         for (int i =0; i < 1000; i++) {
+            System.out.printf("Error on test: %f\n", calculateError(inputLayer, outputLayer, testImages, testLabels));
+//            System.out.printf(
+//                    "Error on training: %f\n",
+//                    calculateError(inputLayer, outputLayer, trainImages, trainLabels));
             System.out.printf("Training epoch #%d\n", i);
             trainIteration(inputLayer, outputLayer, trainImages, trainLabels);
-            System.out.printf("Error: %f\n", calculateError(inputLayer, outputLayer, testImages, testLabels));
         }
     }
     
@@ -80,10 +86,10 @@ public class MnistTrainer {
             final List<Neuron> outputLayer,
             final int[][] images,
             final int[] labels) {
-        for (int imageIndex = 0; imageIndex < 1000; imageIndex++) {
-            if (imageIndex % 100 == 0) {
-                System.out.printf("Training progress: %d\n", (int)(((double) imageIndex / (double) images.length) * 100.));
-            }
+        for (int imageIndex = 0; imageIndex < images.length; imageIndex++) {
+//            if (imageIndex % 100 == 0) {
+//                System.out.printf("Training progress: %3d\n", (int)(((double) imageIndex / (double) images.length) * 100.));
+//            }
             final int[] image = images[imageIndex];
             IntStream.range(0, image.length).forEach(i ->
                 inputLayer.get(i).forwardSignalReceived(null, (double) image[i] / 256.)
@@ -95,6 +101,7 @@ public class MnistTrainer {
             }
             inputLayer.forEach(Neuron::forwardInvalidate);
         }
+        System.out.println();
     }
 
     private static double calculateError(
@@ -106,12 +113,23 @@ public class MnistTrainer {
         for (int imageIndex = 0; imageIndex < images.length; imageIndex++) {
             final int[] image = images[imageIndex];
             for (int i = 0; i < image.length; i++) {
-                inputLayer.get(i).forwardSignalReceived(null, (double) image[i]);
+                inputLayer.get(i).forwardSignalReceived(null, (double) image[i] / 256.);
             }
+            int answer = 0;
+            double probability = -1.;
+            int expectedValue = -1;
             for (int i = 0; i < 10; i++) {
                 final double actualValue = ((ConnectedNeuron)outputLayer.get(i)).getForwardResult();
-                final double expectedResult = labels[imageIndex] == i ? 1.0 : 0.0;
-                errors.add((actualValue -  expectedResult) * (actualValue - expectedResult));
+                if (actualValue > probability) {
+                    probability = actualValue;
+                    answer = i;
+                }
+                if (labels[imageIndex] == i) expectedValue = i;
+            }
+            if (answer == expectedValue) {
+                errors.add(0.);
+            } else {
+                errors.add(1.);
             }
             inputLayer.forEach(Neuron::forwardInvalidate);
         }
