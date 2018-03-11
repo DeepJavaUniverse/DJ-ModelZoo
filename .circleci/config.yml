@@ -19,8 +19,6 @@ jobs:
       - run: git submodule update --init --recursive
 
       # run tests!
-      - run: cd DJ-core
-      - run: mvn install -DskipTests
-      - run: cd ..
+      - run: cd DJ-core && mvn install -DskipTests
       - run: mvn test
 
