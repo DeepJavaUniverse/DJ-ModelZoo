@@ -12,7 +12,7 @@ import java.nio.file.Paths;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 
-public abstract class Downloader {
+public abstract class MnistDownloader {
 
     private static final String HTTP_PROTOCOL = "http";
     private static final String YANN_LECUN_HOST_NAME = "yann.lecun.com";
@@ -40,7 +40,7 @@ public abstract class Downloader {
     public static final File MNIST_TEST_SET_LABELS_FILE
             = Paths.get(TMP_DIR_PATH, "test-labels").toFile();
 
-    private Downloader() { }
+    private MnistDownloader() { }
 
     public static void downloadMnist() {
         if (MNIST_TRAIN_SET_IMAGES_FILE.exists() &&

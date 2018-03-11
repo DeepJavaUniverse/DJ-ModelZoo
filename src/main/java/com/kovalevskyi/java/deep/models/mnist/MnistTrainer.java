@@ -6,7 +6,6 @@ import com.kovalevskyi.java.deep.core.model.activation.Sigmoid;
 import com.kovalevskyi.java.deep.core.model.graph.ConnectedNeuron;
 import com.kovalevskyi.java.deep.core.model.graph.InputNeuron;
 import com.kovalevskyi.java.deep.core.model.graph.Neuron;
-import mnist.MnistReader;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +18,7 @@ public class MnistTrainer {
 
     public static void trainMnistNN(final boolean debug) {
         System.out.println("Downloading MNIst images");
-        Downloader.downloadMnist();
+        MnistDownloader.downloadMnist();
         System.out.println("done\n");
 
         final Random random = new Random();
@@ -58,24 +57,21 @@ public class MnistTrainer {
         System.out.println("done\n");
 
         System.out.println("loading training data in memory");
-        final int[] trainLabels = MnistReader.getLabels(Downloader.MNIST_TRAIN_SET_LABELS_FILE.toString());
-        final List<int[][]> trainImagesRaw = MnistReader.getImages(Downloader.MNIST_TRAIN_SET_IMAGES_FILE.toString());
+        final int[] trainLabels = MnistReader.getLabels(MnistDownloader.MNIST_TRAIN_SET_LABELS_FILE.toString());
+        final List<int[][]> trainImagesRaw = MnistReader.getImages(MnistDownloader.MNIST_TRAIN_SET_IMAGES_FILE.toString());
         final int[][] trainImages
                 = trainImagesRaw.stream().map(Ints::concat).collect(Collectors.toList()).toArray(new int[0][0]);
         System.out.println("done\n");
 
         System.out.println("loading testing data in memory");
-        final int[] testLabels = MnistReader.getLabels(Downloader.MNIST_TEST_SET_LABELS_FILE.toString());
-        final List<int[][]> testImagesRaw = MnistReader.getImages(Downloader.MNIST_TEST_SET_IMAGES_FILE.toString());
+        final int[] testLabels = MnistReader.getLabels(MnistDownloader.MNIST_TEST_SET_LABELS_FILE.toString());
+        final List<int[][]> testImagesRaw = MnistReader.getImages(MnistDownloader.MNIST_TEST_SET_IMAGES_FILE.toString());
         final int[][] testImages
                 = testImagesRaw.stream().map(Ints::concat).collect(Collectors.toList()).toArray(new int[0][0]);
         System.out.println("done\n");
         
         for (int i =0; i < 1000; i++) {
             System.out.printf("Error on test: %f\n", calculateError(inputLayer, outputLayer, testImages, testLabels));
-//            System.out.printf(
-//                    "Error on training: %f\n",
-//                    calculateError(inputLayer, outputLayer, trainImages, trainLabels));
             System.out.printf("Training epoch #%d\n", i);
             trainIteration(inputLayer, outputLayer, trainImages, trainLabels);
         }
