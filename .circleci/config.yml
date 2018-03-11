@@ -22,8 +22,5 @@ jobs:
       - run: cd DJ-core
       - run: mvn install -DskipTests
       - run: cd ..
-      - run: cd mnist-reader
-      - run: mvn install -DskipTests
-      - run: cd ..
       - run: mvn test
 
