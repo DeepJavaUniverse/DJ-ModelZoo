@@ -8,7 +8,7 @@ import static org.junit.Assert.*;
 public class MnistTrainerTest {
 
     @Test
-    @Ignore
+    @Ignore("Test will never end since there is no condition to stop training")
     public void testTrainMnist() {
         MnistTrainer.trainMnistNN(false);
     }

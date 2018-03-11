@@ -87,9 +87,6 @@ public class MnistTrainer {
             final int[][] images,
             final int[] labels) {
         for (int imageIndex = 0; imageIndex < images.length; imageIndex++) {
-//            if (imageIndex % 100 == 0) {
-//                System.out.printf("Training progress: %3d\n", (int)(((double) imageIndex / (double) images.length) * 100.));
-//            }
             final int[] image = images[imageIndex];
             IntStream.range(0, image.length).forEach(i ->
                 inputLayer.get(i).forwardSignalReceived(null, (double) image[i] / 256.)
@@ -99,7 +96,6 @@ public class MnistTrainer {
                 final double expectedResult = labels[imageIndex] == i ? 1.0 : 0.0;
                 outputLayer.get(i).backwardSignalReceived(2. * (expectedResult - actualValue));
             }
-            inputLayer.forEach(Neuron::forwardInvalidate);
         }
         System.out.println();
     }
@@ -131,7 +127,6 @@ public class MnistTrainer {
             } else {
                 errors.add(1.);
             }
-            inputLayer.forEach(Neuron::forwardInvalidate);
         }
         return errors.stream().mapToDouble(i -> i).average().getAsDouble();
     }
