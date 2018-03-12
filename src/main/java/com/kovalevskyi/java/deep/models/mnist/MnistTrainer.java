@@ -8,11 +8,13 @@ import com.kovalevskyi.java.deep.core.model.graph.InputNeuron;
 import com.kovalevskyi.java.deep.core.model.graph.Neuron;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class MnistTrainer {
 
@@ -56,76 +58,111 @@ public class MnistTrainer {
         }));
         System.out.println("done\n");
 
+//        System.out.println("loading training data in memory");
+//        final int[] trainLabels = MnistReader.getLabels(MnistDownloader.MNIST_TRAIN_SET_LABELS_FILE.toString());
+//        final List<int[][]> trainImagesRaw = MnistReader.getImages(MnistDownloader.MNIST_TRAIN_SET_IMAGES_FILE.toString());
+//        final int[][] trainImages
+//                = trainImagesRaw.stream().map(Ints::concat).collect(Collectors.toList()).toArray(new int[0][0]);
+//        System.out.println("done\n");
+//
+//        System.out.println("loading testing data in memory");
+//        final int[] testLabels = MnistReader.getLabels(MnistDownloader.MNIST_TEST_SET_LABELS_FILE.toString());
+//        final List<int[][]> testImagesRaw = MnistReader.getImages(MnistDownloader.MNIST_TEST_SET_IMAGES_FILE.toString());
+//        final int[][] testImages
+//                = testImagesRaw.stream().map(Ints::concat).collect(Collectors.toList()).toArray(new int[0][0]);
+//        System.out.println("done\n");
+//
+//        for (int i =0; i < 1000; i++) {
+//            System.out.printf("Error on test: %f\n", calculateError(inputLayer, outputLayer, testImages, testLabels));
+//            System.out.printf("Training epoch #%d\n", i);
+//            trainIteration(inputLayer, outputLayer, trainImages, trainLabels);
+//        }
         System.out.println("loading training data in memory");
-        final int[] trainLabels = MnistReader.getLabels(MnistDownloader.MNIST_TRAIN_SET_LABELS_FILE.toString());
+        final int[] trainLabelsRaw = MnistReader.getLabels(MnistDownloader.MNIST_TRAIN_SET_LABELS_FILE.toString());
+        final double[][] trainLabels = new double[trainLabelsRaw.length][];
+        IntStream.range(0, trainLabels.length).forEach(i -> trainLabels[i] = convertLabels(i));
+
         final List<int[][]> trainImagesRaw = MnistReader.getImages(MnistDownloader.MNIST_TRAIN_SET_IMAGES_FILE.toString());
-        final int[][] trainImages
-                = trainImagesRaw.stream().map(Ints::concat).collect(Collectors.toList()).toArray(new int[0][0]);
+        final double[][] trainImages = new double[trainImagesRaw.size()][];
+        IntStream.range(0, trainImagesRaw.size())
+                .forEach(i -> trainImages[i] = convertImageToTheInput(trainImagesRaw.get(i)));
         System.out.println("done\n");
 
         System.out.println("loading testing data in memory");
-        final int[] testLabels = MnistReader.getLabels(MnistDownloader.MNIST_TEST_SET_LABELS_FILE.toString());
-        final List<int[][]> testImagesRaw = MnistReader.getImages(MnistDownloader.MNIST_TEST_SET_IMAGES_FILE.toString());
-        final int[][] testImages
-                = testImagesRaw.stream().map(Ints::concat).collect(Collectors.toList()).toArray(new int[0][0]);
+        final int[] testLabelsRaw = MnistReader.getLabels(MnistDownloader.MNIST_TEST_SET_LABELS_FILE.toString());
+        final double[][] testLabels = new double[testLabelsRaw.length][];
+        IntStream.range(0, testLabelsRaw.length).forEach(i -> testLabels[i] = convertLabels(i));
+        final List<int[][]> testImagesRaw
+                = MnistReader.getImages(MnistDownloader.MNIST_TEST_SET_IMAGES_FILE.toString());
+        final double[][] testImages = new double[testImagesRaw.size()][];
+        IntStream.range(0, testImagesRaw.size())
+                .forEach(i -> testImages[i] = convertImageToTheInput(testImagesRaw.get(i)));
         System.out.println("done\n");
-        
-        for (int i =0; i < 1000; i++) {
-            System.out.printf("Error on test: %f\n", calculateError(inputLayer, outputLayer, testImages, testLabels));
-            System.out.printf("Training epoch #%d\n", i);
-            trainIteration(inputLayer, outputLayer, trainImages, trainLabels);
-        }
-    }
-    
-    private static void trainIteration(
-            final List<Neuron> inputLayer,
-            final List<Neuron> outputLayer,
-            final int[][] images,
-            final int[] labels) {
-        for (int imageIndex = 0; imageIndex < images.length; imageIndex++) {
-            final int[] image = images[imageIndex];
-            IntStream.range(0, image.length).forEach(i ->
-                inputLayer.get(i).forwardSignalReceived(null, (double) image[i] / 256.)
-            );
-            for (int i = 0; i < 10; i++) {
-                final double actualValue = ((ConnectedNeuron)outputLayer.get(i)).getForwardResult();
-                final double expectedResult = labels[imageIndex] == i ? 1.0 : 0.0;
-                outputLayer.get(i).backwardSignalReceived(2. * (expectedResult - actualValue));
-            }
-        }
-        System.out.println();
+
     }
 
-    private static double calculateError(
-            final List<Neuron> inputLayer,
-            final List<Neuron> outputLayer,
-            final int[][] images,
-            final int[] labels) {
-        List<Double> errors = new ArrayList<>(images.length);
-        for (int imageIndex = 0; imageIndex < images.length; imageIndex++) {
-            final int[] image = images[imageIndex];
-            for (int i = 0; i < image.length; i++) {
-                inputLayer.get(i).forwardSignalReceived(null, (double) image[i] / 256.);
-            }
-            int answer = 0;
-            double probability = -1.;
-            int expectedValue = -1;
-            for (int i = 0; i < 10; i++) {
-                final double actualValue = ((ConnectedNeuron)outputLayer.get(i)).getForwardResult();
-                if (actualValue > probability) {
-                    probability = actualValue;
-                    answer = i;
-                }
-                if (labels[imageIndex] == i) expectedValue = i;
-            }
-            if (answer == expectedValue) {
-                errors.add(0.);
-            } else {
-                errors.add(1.);
-            }
-        }
-        return errors.stream().mapToDouble(i -> i).average().getAsDouble();
+    private static double[] convertLabels(final int label) {
+        final double[] labels = new double[10];
+        labels[label] = 1.;
+        return labels;
     }
+
+    private static double[] convertImageToTheInput(final int[][] image) {
+        return Arrays.stream(image)
+                .flatMapToInt(row -> Arrays.stream(row))
+                .mapToDouble(pixel -> (double)pixel / 256.)
+                .toArray();
+    }
+    
+//    private static void trainIteration(
+//            final List<Neuron> inputLayer,
+//            final List<Neuron> outputLayer,
+//            final int[][] images,
+//            final int[] labels) {
+//        for (int imageIndex = 0; imageIndex < images.length; imageIndex++) {
+//            final int[] image = images[imageIndex];
+//            IntStream.range(0, image.length).forEach(i ->
+//                inputLayer.get(i).forwardSignalReceived(null, (double) image[i] / 256.)
+//            );
+//            for (int i = 0; i < 10; i++) {
+//                final double actualValue = ((ConnectedNeuron)outputLayer.get(i)).getForwardResult();
+//                final double expectedResult = labels[imageIndex] == i ? 1.0 : 0.0;
+//                outputLayer.get(i).backwardSignalReceived(2. * (expectedResult - actualValue));
+//            }
+//        }
+//        System.out.println();
+//    }
+//
+//    private static double calculateError(
+//            final List<Neuron> inputLayer,
+//            final List<Neuron> outputLayer,
+//            final int[][] images,
+//            final int[] labels) {
+//        List<Double> errors = new ArrayList<>(images.length);
+//        for (int imageIndex = 0; imageIndex < images.length; imageIndex++) {
+//            final int[] image = images[imageIndex];
+//            for (int i = 0; i < image.length; i++) {
+//                inputLayer.get(i).forwardSignalReceived(null, (double) image[i] / 256.);
+//            }
+//            int answer = 0;
+//            double probability = -1.;
+//            int expectedValue = -1;
+//            for (int i = 0; i < 10; i++) {
+//                final double actualValue = ((ConnectedNeuron)outputLayer.get(i)).getForwardResult();
+//                if (actualValue > probability) {
+//                    probability = actualValue;
+//                    answer = i;
+//                }
+//                if (labels[imageIndex] == i) expectedValue = i;
+//            }
+//            if (answer == expectedValue) {
+//                errors.add(0.);
+//            } else {
+//                errors.add(1.);
+//            }
+//        }
+//        return errors.stream().mapToDouble(i -> i).average().getAsDouble();
+//    }
 
     private static List<Neuron> createLayer(final Supplier<Neuron> neuronSupplier, final int layerSize) {
         return IntStream.range(0, layerSize).mapToObj(i -> neuronSupplier.get()).collect(Collectors.toList());
