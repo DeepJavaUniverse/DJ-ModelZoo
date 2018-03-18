@@ -12,7 +12,6 @@ import com.kovalevskyi.java.deep.core.model.loss.QuadraticLoss;
 import com.kovalevskyi.java.deep.core.optimizer.Optimizer;
 import com.kovalevskyi.java.deep.core.optimizer.OptimizerProgressListener;
 import com.kovalevskyi.java.deep.core.optimizer.SGDOptimizer;
-import com.kovalevskyi.java.deep.core.optimizer.TerminalOptimezerProgressListener;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,36 +55,15 @@ public class MnistTrainer {
 
         inputLayer.stream().forEach(inputNeuron -> {                                                       
             hiddenLayer.stream().forEach(hiddenNeuron -> {
-//                inputNeuron.connect(hiddenNeuron, random.nextDouble());
                 inputNeuron.connect(hiddenNeuron, (random.nextDouble() * 2. - 1.) * Math.sqrt(2. / 784.));
             });
         });
 
         hiddenLayer.stream().forEach(hiddenNeuron -> outputLayer.stream().forEach(outputNeuron -> {
-//            hiddenNeuron.connect(outputNeuron, random.nextDouble());
             hiddenNeuron.connect(outputNeuron, (random.nextDouble() * 2. - 1.) / 10.);
         }));
         System.out.println("done\n");
 
-//        System.out.println("loading training data in memory");
-//        final int[] trainLabels = MnistReader.getLabels(MnistDownloader.MNIST_TRAIN_SET_LABELS_FILE.toString());
-//        final List<int[][]> trainImagesRaw = MnistReader.getImages(MnistDownloader.MNIST_TRAIN_SET_IMAGES_FILE.toString());
-//        final int[][] trainImages
-//                = trainImagesRaw.stream().map(Ints::concat).collect(Collectors.toList()).toArray(new int[0][0]);
-//        System.out.println("done\n");
-//
-//        System.out.println("loading testing data in memory");
-//        final int[] testLabels = MnistReader.getLabels(MnistDownloader.MNIST_TEST_SET_LABELS_FILE.toString());
-//        final List<int[][]> testImagesRaw = MnistReader.getImages(MnistDownloader.MNIST_TEST_SET_IMAGES_FILE.toString());
-//        final int[][] testImages
-//                = testImagesRaw.stream().map(Ints::concat).collect(Collectors.toList()).toArray(new int[0][0]);
-//        System.out.println("done\n");
-//
-//        for (int i =0; i < 1000; i++) {
-//            System.out.printf("Error on test: %f\n", calculateError(inputLayer, outputLayer, testImages, testLabels));
-//            System.out.printf("Training epoch #%d\n", i);
-//            trainIteration(inputLayer, outputLayer, trainImages, trainLabels);
-//        }
         System.out.println("loading training data in memory");
         final int[] trainLabelsRaw = MnistReader.getLabels(MnistDownloader.MNIST_TRAIN_SET_LABELS_FILE.toString());
         final double[][] trainLabels = new double[trainLabelsRaw.length][];
@@ -104,9 +82,6 @@ public class MnistTrainer {
         final List<int[][]> testImagesRaw
                 = MnistReader.getImages(MnistDownloader.MNIST_TEST_SET_IMAGES_FILE.toString());
         final double[][] testImages = new double[testImagesRaw.size()][];
-        final int[][] testImages2
-                = testImagesRaw.stream().map(Ints::concat).collect(Collectors.toList()).toArray(new int[0][0]);
-        final int[] testLabels2 = MnistReader.getLabels(MnistDownloader.MNIST_TEST_SET_LABELS_FILE.toString());
         IntStream.range(0, testImagesRaw.size())
                 .forEach(i -> testImages[i] = convertImageToTheInput(testImagesRaw.get(i)));
         System.out.println("done\n");
@@ -116,7 +91,7 @@ public class MnistTrainer {
                 = new SGDOptimizer(loss, 100, new OptimizerProgressListener() {
             @Override
             public void onProgress(final double v, final int i, final int i1) {
-                final double updatedLoss = calculateError(inputLayer, outputLayer, testImages2, testLabels2);
+                final double updatedLoss = calculateError(inputLayer, outputLayer, testImages, testLabels);
                 System.out.printf(
                         "LOSS: %5f, CorrectLoss: %10f,Epoch: %d of %d\n",
                         v,
@@ -138,20 +113,19 @@ public class MnistTrainer {
         return Arrays.stream(image)
                 .flatMapToInt(row -> Arrays.stream(row))
                 .mapToDouble(pixel -> ((double)pixel - 128.) / 128.)
-//                .mapToDouble(pixel -> ((double)pixel) / 256.)
                 .toArray();
     }
 
     private static double calculateError(
             final List<Neuron> inputLayer,
             final List<Neuron> outputLayer,
-            final int[][] images,
-            final int[] labels) {
+            final double[][] images,
+            final double[][] labels) {
         List<Double> errors = new ArrayList<>(images.length);
         for (int imageIndex = 0; imageIndex < images.length; imageIndex++) {
-            final int[] image = images[imageIndex];
+            final double[] image = images[imageIndex];
             for (int i = 0; i < image.length; i++) {
-                inputLayer.get(i).forwardSignalReceived(null, ((double)image[i] - 128.) / 128.);
+                inputLayer.get(i).forwardSignalReceived(null, (image[i] - 128.) / 128.);
             }
             int answer = 0;
             double probability = -1.;
@@ -162,7 +136,7 @@ public class MnistTrainer {
                     probability = actualValue;
                     answer = i;
                 }
-                if (labels[imageIndex] == i) expectedValue = i;
+                if (labels[imageIndex][i] == 1.0) expectedValue = i;
             }
             if (answer == expectedValue) {
                 errors.add(0.);
