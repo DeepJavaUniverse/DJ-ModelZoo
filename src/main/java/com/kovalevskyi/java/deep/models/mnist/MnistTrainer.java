@@ -125,7 +125,7 @@ public class MnistTrainer {
         for (int imageIndex = 0; imageIndex < images.length; imageIndex++) {
             final double[] image = images[imageIndex];
             for (int i = 0; i < image.length; i++) {
-                inputLayer.get(i).forwardSignalReceived(null, (image[i] - 128.) / 128.);
+                inputLayer.get(i).forwardSignalReceived(null, image[i]);
             }
             int answer = 0;
             double probability = -1.;
@@ -136,7 +136,7 @@ public class MnistTrainer {
                     probability = actualValue;
                     answer = i;
                 }
-                if (labels[imageIndex][i] == 1.0) expectedValue = i;
+                if (labels[imageIndex][i] > 0) expectedValue = i;
             }
             if (answer == expectedValue) {
                 errors.add(0.);
