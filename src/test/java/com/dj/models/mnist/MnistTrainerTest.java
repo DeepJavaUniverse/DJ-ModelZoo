@@ -1,9 +1,7 @@
-package com.kovalevskyi.java.deep.models.mnist;
+package com.dj.models.mnist;
 
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 public class MnistTrainerTest {
 

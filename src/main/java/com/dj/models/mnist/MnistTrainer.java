@@ -1,17 +1,18 @@
-package com.kovalevskyi.java.deep.models.mnist;
+package com.dj.models.mnist;
 
-import com.google.common.primitives.Ints;
-import com.kovalevskyi.java.deep.core.model.activation.LeakyRelu;
-import com.kovalevskyi.java.deep.core.model.activation.Relu;
-import com.kovalevskyi.java.deep.core.model.activation.Sigmoid;
-import com.kovalevskyi.java.deep.core.model.graph.ConnectedNeuron;
-import com.kovalevskyi.java.deep.core.model.graph.InputNeuron;
-import com.kovalevskyi.java.deep.core.model.graph.Neuron;
-import com.kovalevskyi.java.deep.core.model.loss.Loss;
-import com.kovalevskyi.java.deep.core.model.loss.QuadraticLoss;
-import com.kovalevskyi.java.deep.core.optimizer.Optimizer;
-import com.kovalevskyi.java.deep.core.optimizer.OptimizerProgressListener;
-import com.kovalevskyi.java.deep.core.optimizer.SGDOptimizer;
+
+import com.dj.core.model.activation.LeakyRelu;
+import com.dj.core.model.activation.Sigmoid;
+import com.dj.core.model.graph.ConnectedNeuron;
+import com.dj.core.model.graph.InputNeuron;
+import com.dj.core.model.graph.Neuron;
+import com.dj.core.model.loss.Loss;
+import com.dj.core.model.loss.QuadraticLoss;
+import com.dj.core.optimizer.Optimizer;
+import com.dj.core.optimizer.OptimizerProgressListener;
+import com.dj.core.optimizer.SGDOptimizer;
+import com.dj.core.serializer.ModelWrapper;
+import com.dj.core.serializer.SerializerHelper;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,7 +21,6 @@ import java.util.Random;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public class MnistTrainer {
 
@@ -101,22 +101,25 @@ public class MnistTrainer {
             }
         });
         optimizer.train(inputLayer, outputLayer, trainImages, trainLabels, testImages, testLabels);
+
+        final ModelWrapper model = new ModelWrapper.Builder().inputLayer(inputLayer).outputLayer(outputLayer).build();
+        SerializerHelper.serializeToFile(model, "/tmp/mnist.dj");
     }
 
-    private static double[] convertLabel(final int label) {
+    public static double[] convertLabel(final int label) {
         final double[] labels = new double[10];
         labels[label] = 1.;
         return labels;
     }
 
-    private static double[] convertImageToTheInput(final int[][] image) {
+    public static double[] convertImageToTheInput(final int[][] image) {
         return Arrays.stream(image)
                 .flatMapToInt(row -> Arrays.stream(row))
                 .mapToDouble(pixel -> ((double)pixel - 128.) / 128.)
                 .toArray();
     }
 
-    private static double calculateError(
+    public static double calculateError(
             final List<Neuron> inputLayer,
             final List<Neuron> outputLayer,
             final double[][] images,
