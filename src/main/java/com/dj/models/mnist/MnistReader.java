@@ -1,4 +1,4 @@
-package com.kovalevskyi.java.deep.models.mnist;
+package com.dj.models.mnist;
 
 import static java.lang.String.format;
 
