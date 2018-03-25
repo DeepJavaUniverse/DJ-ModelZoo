@@ -25,43 +25,17 @@ import java.util.stream.IntStream;
 public class MnistTrainer {
 
     public static void trainMnistNN(final boolean debug) {
+        final ModelWrapper modelWrapper = createTheModel(debug);
+        trainMnistNN(modelWrapper);
+    }
+
+    public static void trainMnistNN(final ModelWrapper modelWrapper) {
+        List<Neuron> inputLayer = modelWrapper.getInputLayer();
+        List<Neuron> outputLayer
+                = modelWrapper.getOutputLayer();
+
         System.out.println("Downloading MNIst images");
         MnistDownloader.downloadMnist();
-        System.out.println("done\n");
-
-        final Random random = new Random();
-        final double learningRate = 0.0005;
-
-        System.out.println("Creating network");
-        List<Neuron> inputLayer = createLayer(InputNeuron::new, 784);
-        List<Neuron> hiddenLayer
-                = createLayer(() ->
-                    new ConnectedNeuron
-                            .Builder()
-                            .activationFunction(new LeakyRelu())
-                            .debug(debug)
-                            .learningRate(learningRate)
-                            .build(),
-                    10);
-        List<Neuron> outputLayer
-                = createLayer(() ->
-                    new ConnectedNeuron
-                            .Builder()
-                            .activationFunction(new Sigmoid(true))
-                            .debug(debug)
-                            .learningRate(learningRate)
-                            .build(),
-                    10);
-
-        inputLayer.stream().forEach(inputNeuron -> {                                                       
-            hiddenLayer.stream().forEach(hiddenNeuron -> {
-                inputNeuron.connect(hiddenNeuron, (random.nextDouble() * 2. - 1.) * Math.sqrt(2. / 784.));
-            });
-        });
-
-        hiddenLayer.stream().forEach(hiddenNeuron -> outputLayer.stream().forEach(outputNeuron -> {
-            hiddenNeuron.connect(outputNeuron, (random.nextDouble() * 2. - 1.) / 10.);
-        }));
         System.out.println("done\n");
 
         System.out.println("loading training data in memory");
@@ -148,6 +122,44 @@ public class MnistTrainer {
             }
         }
         return errors.stream().mapToDouble(i -> i).average().getAsDouble();
+    }
+
+    private static ModelWrapper createTheModel(final boolean debug) {
+        final Random random = new Random();
+        final double learningRate = 0.0005;
+
+        System.out.println("Creating network");
+        List<Neuron> inputLayer = createLayer(InputNeuron::new, 784);
+        List<Neuron> hiddenLayer
+                = createLayer(() ->
+                        new ConnectedNeuron
+                                .Builder()
+                                .activationFunction(new LeakyRelu())
+                                .debug(debug)
+                                .learningRate(learningRate)
+                                .build(),
+                10);
+        List<Neuron> outputLayer
+                = createLayer(() ->
+                        new ConnectedNeuron
+                                .Builder()
+                                .activationFunction(new Sigmoid(true))
+                                .debug(debug)
+                                .learningRate(learningRate)
+                                .build(),
+                10);
+
+        inputLayer.stream().forEach(inputNeuron -> {
+            hiddenLayer.stream().forEach(hiddenNeuron -> {
+                inputNeuron.connect(hiddenNeuron, (random.nextDouble() * 2. - 1.) * Math.sqrt(2. / 784.));
+            });
+        });
+
+        hiddenLayer.stream().forEach(hiddenNeuron -> outputLayer.stream().forEach(outputNeuron -> {
+            hiddenNeuron.connect(outputNeuron, (random.nextDouble() * 2. - 1.) / 10.);
+        }));
+        System.out.println("done\n");
+        return new ModelWrapper.Builder().inputLayer(inputLayer).outputLayer(outputLayer).build();
     }
 
     private static List<Neuron> createLayer(final Supplier<Neuron> neuronSupplier, final int layerSize) {
