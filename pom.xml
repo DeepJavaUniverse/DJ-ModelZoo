@@ -6,7 +6,7 @@
 
     <groupId>com.dj</groupId>
     <artifactId>models</artifactId>
-    <version>0.01</version>
+    <version>0.02</version>
     <packaging>jar</packaging>
 
     <build>
@@ -28,7 +28,7 @@
         <dependency>
             <groupId>com.dj</groupId>
             <artifactId>core</artifactId>
-            <version>0.01</version>
+            <version>0.02</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/commons-io/commons-io -->
         <dependency>
