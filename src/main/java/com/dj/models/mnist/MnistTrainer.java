@@ -1,9 +1,11 @@
 package com.dj.models.mnist;
 
 
+import com.dj.core.helpers.NormalizationHelper;
 import com.dj.core.model.activation.LeakyRelu;
 import com.dj.core.model.activation.Sigmoid;
 import com.dj.core.model.graph.ConnectedNeuron;
+import com.dj.core.model.graph.Context;
 import com.dj.core.model.graph.InputNeuron;
 import com.dj.core.model.graph.Neuron;
 import com.dj.core.model.loss.Loss;
@@ -14,6 +16,7 @@ import com.dj.core.optimizer.SGDOptimizer;
 import com.dj.core.serializer.ModelWrapper;
 import com.dj.core.serializer.SerializerHelper;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,40 +32,46 @@ public class MnistTrainer {
         trainMnistNN(modelWrapper);
     }
 
+    private static double[][] loadLabels(final String path) {
+        final int[] trainLabelsRaw = MnistReader.getLabels(MnistDownloader.MNIST_TRAIN_SET_LABELS_FILE.toString());
+        final double[][] trainLabels = new double[trainLabelsRaw.length][];
+        IntStream.range(0, trainLabels.length).forEach(i -> trainLabels[i] = convertLabel(trainLabelsRaw[i]));
+        return trainLabels;
+    }
+
+    private static double[][] loadImages(final String path) {
+        final List<int[][]> trainImagesRaw = MnistReader.getImages(MnistDownloader.MNIST_TRAIN_SET_IMAGES_FILE.toString());
+        final double[][] trainImages = new double[trainImagesRaw.size()][];
+        IntStream.range(0, trainImagesRaw.size())
+                .forEach(i -> trainImages[i] = convertImageToTheInput(trainImagesRaw.get(i)));
+        return NormalizationHelper.normalize(trainImages);
+    }
+
     public static void trainMnistNN(final ModelWrapper modelWrapper) {
         List<Neuron> inputLayer = modelWrapper.getInputLayer();
         List<Neuron> outputLayer
                 = modelWrapper.getOutputLayer();
+        Context context = modelWrapper.getContext();
 
         System.out.println("Downloading MNIst images");
         MnistDownloader.downloadMnist();
         System.out.println("done\n");
 
         System.out.println("loading training data in memory");
-        final int[] trainLabelsRaw = MnistReader.getLabels(MnistDownloader.MNIST_TRAIN_SET_LABELS_FILE.toString());
-        final double[][] trainLabels = new double[trainLabelsRaw.length][];
-        IntStream.range(0, trainLabels.length).forEach(i -> trainLabels[i] = convertLabel(trainLabelsRaw[i]));
+        final double[][] trainLabels = loadLabels(MnistDownloader.MNIST_TRAIN_SET_LABELS_FILE.toString());
 
-        final List<int[][]> trainImagesRaw = MnistReader.getImages(MnistDownloader.MNIST_TRAIN_SET_IMAGES_FILE.toString());
-        final double[][] trainImages = new double[trainImagesRaw.size()][];
-        IntStream.range(0, trainImagesRaw.size())
-                .forEach(i -> trainImages[i] = convertImageToTheInput(trainImagesRaw.get(i)));
+        final double[][] trainImages = loadImages(MnistDownloader.MNIST_TRAIN_SET_IMAGES_FILE.toString());
         System.out.println("done\n");
 
         System.out.println("loading testing data in memory");
-        final int[] testLabelsRaw = MnistReader.getLabels(MnistDownloader.MNIST_TEST_SET_LABELS_FILE.toString());
-        final double[][] testLabels = new double[testLabelsRaw.length][];
-        IntStream.range(0, testLabelsRaw.length).forEach(i -> testLabels[i] = convertLabel(testLabelsRaw[i]));
-        final List<int[][]> testImagesRaw
-                = MnistReader.getImages(MnistDownloader.MNIST_TEST_SET_IMAGES_FILE.toString());
-        final double[][] testImages = new double[testImagesRaw.size()][];
-        IntStream.range(0, testImagesRaw.size())
-                .forEach(i -> testImages[i] = convertImageToTheInput(testImagesRaw.get(i)));
+        final double[][] testLabels = loadLabels(MnistDownloader.MNIST_TEST_SET_LABELS_FILE.toString());
+
+        final double[][] testImages = loadImages(MnistDownloader.MNIST_TEST_SET_IMAGES_FILE.toString());
         System.out.println("done\n");
 
         final Loss loss = new QuadraticLoss();
         final Optimizer optimizer
-                = new SGDOptimizer(loss, 100, new OptimizerProgressListener() {
+                = new SGDOptimizer(loss, 500, new OptimizerProgressListener() {
             @Override
             public void onProgress(final double v, final int i, final int i1) {
                 final double updatedLoss = calculateError(inputLayer, outputLayer, testImages, testLabels);
@@ -73,8 +82,8 @@ public class MnistTrainer {
                         i,
                         i1);
             }
-        });
-        optimizer.train(inputLayer, outputLayer, trainImages, trainLabels, testImages, testLabels);
+        }, 2.);
+        optimizer.train(context, inputLayer, outputLayer, trainImages, trainLabels, testImages, testLabels);
 
         final ModelWrapper model = new ModelWrapper.Builder().inputLayer(inputLayer).outputLayer(outputLayer).build();
         SerializerHelper.serializeToFile(model, "/tmp/mnist.dj");
@@ -127,6 +136,7 @@ public class MnistTrainer {
     private static ModelWrapper createTheModel(final boolean debug) {
         final Random random = new Random();
         final double learningRate = 0.0005;
+        final Context context = new Context(learningRate, debug);
 
         System.out.println("Creating network");
         List<Neuron> inputLayer = createLayer(InputNeuron::new, 784);
@@ -135,8 +145,7 @@ public class MnistTrainer {
                         new ConnectedNeuron
                                 .Builder()
                                 .activationFunction(new LeakyRelu())
-                                .debug(debug)
-                                .learningRate(learningRate)
+                                .context(context)
                                 .build(),
                 10);
         List<Neuron> outputLayer
@@ -144,8 +153,7 @@ public class MnistTrainer {
                         new ConnectedNeuron
                                 .Builder()
                                 .activationFunction(new Sigmoid(true))
-                                .debug(debug)
-                                .learningRate(learningRate)
+                                .context(context)
                                 .build(),
                 10);
 
@@ -159,7 +167,7 @@ public class MnistTrainer {
             hiddenNeuron.connect(outputNeuron, (random.nextDouble() * 2. - 1.) / 10.);
         }));
         System.out.println("done\n");
-        return new ModelWrapper.Builder().inputLayer(inputLayer).outputLayer(outputLayer).build();
+        return new ModelWrapper.Builder().inputLayer(inputLayer).outputLayer(outputLayer).context(context).build();
     }
 
     private static List<Neuron> createLayer(final Supplier<Neuron> neuronSupplier, final int layerSize) {
