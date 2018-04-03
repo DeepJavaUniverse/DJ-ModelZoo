@@ -32,21 +32,6 @@ public class MnistTrainer {
         trainMnistNN(modelWrapper);
     }
 
-    private static double[][] loadLabels(final String path) {
-        final int[] trainLabelsRaw = MnistReader.getLabels(MnistDownloader.MNIST_TRAIN_SET_LABELS_FILE.toString());
-        final double[][] trainLabels = new double[trainLabelsRaw.length][];
-        IntStream.range(0, trainLabels.length).forEach(i -> trainLabels[i] = convertLabel(trainLabelsRaw[i]));
-        return trainLabels;
-    }
-
-    private static double[][] loadImages(final String path) {
-        final List<int[][]> trainImagesRaw = MnistReader.getImages(MnistDownloader.MNIST_TRAIN_SET_IMAGES_FILE.toString());
-        final double[][] trainImages = new double[trainImagesRaw.size()][];
-        IntStream.range(0, trainImagesRaw.size())
-                .forEach(i -> trainImages[i] = convertImageToTheInput(trainImagesRaw.get(i)));
-        return NormalizationHelper.normalize(trainImages);
-    }
-
     public static void trainMnistNN(final ModelWrapper modelWrapper) {
         List<Neuron> inputLayer = modelWrapper.getInputLayer();
         List<Neuron> outputLayer
@@ -131,6 +116,21 @@ public class MnistTrainer {
             }
         }
         return errors.stream().mapToDouble(i -> i).average().getAsDouble();
+    }
+
+    private static double[][] loadLabels(final String path) {
+        final int[] trainLabelsRaw = MnistReader.getLabels(path);
+        final double[][] trainLabels = new double[trainLabelsRaw.length][];
+        IntStream.range(0, trainLabels.length).forEach(i -> trainLabels[i] = convertLabel(trainLabelsRaw[i]));
+        return trainLabels;
+    }
+
+    private static double[][] loadImages(final String path) {
+        final List<int[][]> trainImagesRaw = MnistReader.getImages(path);
+        final double[][] trainImages = new double[trainImagesRaw.size()][];
+        IntStream.range(0, trainImagesRaw.size())
+                .forEach(i -> trainImages[i] = convertImageToTheInput(trainImagesRaw.get(i)));
+        return NormalizationHelper.normalize(trainImages);
     }
 
     private static ModelWrapper createTheModel(final boolean debug) {
