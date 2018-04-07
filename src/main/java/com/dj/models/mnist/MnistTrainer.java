@@ -120,6 +120,7 @@ public class MnistTrainer {
                         updatedLoss,
                         i,
                         i1);
+                SerializerHelper.serializeToFile(modelWrapper, String.format("/tmp/mnist_model_checkpoint_%d.dj", i));
             }
         }, 2.);
         optimizer.train(context, inputLayer, outputLayer, trainImages, trainLabels, testImages, testLabels);
