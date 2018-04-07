@@ -15,8 +15,14 @@ import com.dj.core.optimizer.OptimizerProgressListener;
 import com.dj.core.optimizer.SGDOptimizer;
 import com.dj.core.serializer.ModelWrapper;
 import com.dj.core.serializer.SerializerHelper;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 
-import java.text.Normalizer;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,17 +33,12 @@ import java.util.stream.IntStream;
 
 public class MnistTrainer {
 
-    public static void trainMnistNN(final boolean debug) {
+    public static void downloadDataAndtrainMnistNN(final boolean debug) {
         final ModelWrapper modelWrapper = createTheModel(debug);
-        trainMnistNN(modelWrapper);
+        downloadDataAndtrainMnistNN(modelWrapper);
     }
 
-    public static void trainMnistNN(final ModelWrapper modelWrapper) {
-        List<Neuron> inputLayer = modelWrapper.getInputLayer();
-        List<Neuron> outputLayer
-                = modelWrapper.getOutputLayer();
-        Context context = modelWrapper.getContext();
-
+    public static void downloadDataAndtrainMnistNN(final ModelWrapper modelWrapper) {
         System.out.println("Downloading MNIst images");
         MnistDownloader.downloadMnist();
         System.out.println("done\n");
@@ -53,7 +54,60 @@ public class MnistTrainer {
 
         final double[][] testImages = loadImages(MnistDownloader.MNIST_TEST_SET_IMAGES_FILE.toString());
         System.out.println("done\n");
+        trainMnistNN(modelWrapper, trainLabels, trainImages, testLabels, testImages);
+    }
 
+    public static void trainMnistNNOnKaggleData(final boolean debug) {
+        final ModelWrapper modelWrapper = createTheModel(debug);
+        final String path = MnistTrainer.class.getClassLoader()
+                .getResource("com/dj/models/mnist/train.csv")
+                .getPath();
+        final File csvData = new File(path);
+        final CSVParser parser;
+        final List<CSVRecord> records;
+        try {
+            parser = CSVParser.parse(csvData, Charset.defaultCharset(), CSVFormat.EXCEL.withHeader());
+            records= parser.getRecords();
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("CSV parsing failed", e);
+        }
+
+        System.out.println("Downloading MNIst images");
+        MnistDownloader.downloadMnist();
+        System.out.println("done\n");
+
+        System.out.println("Preparing training data");
+        final double[][] trainImages = new double[records.size()][784];
+        final double[][] trainLabels = new double[records.size()][10];
+        IntStream.range(0, records.size()).forEach(imageIndex ->
+            IntStream.range(0, 784).forEach(pixelIndex -> {
+                trainImages[imageIndex][pixelIndex] = Integer.parseInt(records.get(imageIndex).get(pixelIndex + 1));
+                final int label = Integer.parseInt(records.get(imageIndex).get(0));
+                trainLabels[imageIndex][label] = 1.;
+            })
+        );
+        final double[][] normalizedTrainImages = NormalizationHelper.normalize(trainImages);
+        System.out.println("done");
+
+        System.out.println("Loading testing data");
+        final double[][] testLabels = loadLabels(MnistDownloader.MNIST_TEST_SET_LABELS_FILE.toString());
+
+        final double[][] testImages = loadImages(MnistDownloader.MNIST_TEST_SET_IMAGES_FILE.toString());
+        System.out.println("done\n");
+        trainMnistNN(modelWrapper, trainLabels, normalizedTrainImages, testLabels, testImages);
+        SerializerHelper.serializeToFile(modelWrapper, "/tmp/mnist_kaggle.dj");
+    }
+
+    private static void trainMnistNN(final ModelWrapper modelWrapper,
+                                    final double[][] trainLabels,
+                                    final double[][] trainImages,
+                                    final double[][] testLabels,
+                                    final double[][] testImages) {
+        List<Neuron> inputLayer = modelWrapper.getInputLayer();
+        List<Neuron> outputLayer
+                = modelWrapper.getOutputLayer();
+        Context context = modelWrapper.getContext();
         final Loss loss = new QuadraticLoss();
         final Optimizer optimizer
                 = new SGDOptimizer(loss, 500, new OptimizerProgressListener() {

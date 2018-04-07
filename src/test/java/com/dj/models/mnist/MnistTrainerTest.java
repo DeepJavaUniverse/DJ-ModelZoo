@@ -10,7 +10,13 @@ public class MnistTrainerTest {
     @Test
     @Ignore("Test will never end since there is no condition to stop training")
     public void testTrainMnist() {
-        MnistTrainer.trainMnistNN(true);
+        MnistTrainer.downloadDataAndtrainMnistNN(true);
+    }
+
+    @Test
+    @Ignore("Test will never end since there is no condition to stop training")
+    public void testTrainKaggleMnist() {
+        MnistTrainer.trainMnistNNOnKaggleData(true);
     }
 
     @Test
@@ -19,6 +25,6 @@ public class MnistTrainerTest {
         String path = MnistTrainer.class.getClassLoader().getResource("com/dj/models/mnist/mnist.dj").getPath()
                 .toString();
         ModelWrapper modelWrapper = SerializerHelper.deserializeFromFile(path);
-        MnistTrainer.trainMnistNN(modelWrapper);
+        MnistTrainer.downloadDataAndtrainMnistNN(modelWrapper);
     }
 }
