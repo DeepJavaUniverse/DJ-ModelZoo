@@ -138,7 +138,7 @@ public class MnistTrainer {
     public static double[] convertImageToTheInput(final int[][] image) {
         return Arrays.stream(image)
                 .flatMapToInt(row -> Arrays.stream(row))
-                .mapToDouble(pixel -> ((double)pixel - 128.) / 128.)
+                .mapToDouble(pixel -> pixel)
                 .toArray();
     }
 
