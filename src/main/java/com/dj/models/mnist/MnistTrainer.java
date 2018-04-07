@@ -19,10 +19,11 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -32,6 +33,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class MnistTrainer {
+
+    private static final int INDEX_OF_KAGGLE_IMAGES = 0;
+    private static final int INDEX_OF_KAGGLE_LABELS = 1;
 
     public static void downloadDataAndtrainMnistNN(final boolean debug) {
         final ModelWrapper modelWrapper = createTheModel(debug);
@@ -59,9 +63,30 @@ public class MnistTrainer {
 
     public static void trainMnistNNOnKaggleData(final boolean debug) {
         final ModelWrapper modelWrapper = createTheModel(debug);
+
+        System.out.println("Downloading MNIst images");
+        MnistDownloader.downloadMnist();
+        System.out.println("done\n");
+
+        System.out.println("Preparing training data");
         final String path = MnistTrainer.class.getClassLoader()
                 .getResource("com/dj/models/mnist/train.csv")
                 .getPath();
+        final double[][][] kaggleData = readKaggleDataTraining(path);
+        final double[][] trainImages = kaggleData[INDEX_OF_KAGGLE_IMAGES];
+        final double[][] trainLabels = kaggleData[INDEX_OF_KAGGLE_LABELS];
+        System.out.println("done");
+
+        System.out.println("Loading testing data");
+        final double[][] testLabels = loadLabels(MnistDownloader.MNIST_TEST_SET_LABELS_FILE.toString());
+
+        final double[][] testImages = loadImages(MnistDownloader.MNIST_TEST_SET_IMAGES_FILE.toString());
+        System.out.println("done\n");
+        trainMnistNN(modelWrapper, trainLabels, trainImages, testLabels, testImages);
+        SerializerHelper.serializeToFile(modelWrapper, "/tmp/mnist_kaggle.dj");
+    }
+
+    private static double[][][] readKaggleDataTraining(final String path) {
         final File csvData = new File(path);
         final CSVParser parser;
         final List<CSVRecord> records;
@@ -73,30 +98,73 @@ public class MnistTrainer {
             throw new RuntimeException("CSV parsing failed", e);
         }
 
-        System.out.println("Downloading MNIst images");
-        MnistDownloader.downloadMnist();
-        System.out.println("done\n");
-
-        System.out.println("Preparing training data");
         final double[][] trainImages = new double[records.size()][784];
         final double[][] trainLabels = new double[records.size()][10];
         IntStream.range(0, records.size()).forEach(imageIndex ->
-            IntStream.range(0, 784).forEach(pixelIndex -> {
-                trainImages[imageIndex][pixelIndex] = Integer.parseInt(records.get(imageIndex).get(pixelIndex + 1));
-                final int label = Integer.parseInt(records.get(imageIndex).get(0));
-                trainLabels[imageIndex][label] = 1.;
-            })
+                IntStream.range(0, 784).forEach(pixelIndex -> {
+                    trainImages[imageIndex][pixelIndex] = Integer.parseInt(records.get(imageIndex).get(pixelIndex + 1));
+                    final int label = Integer.parseInt(records.get(imageIndex).get(0));
+                    trainLabels[imageIndex][label] = 1.;
+                })
         );
-        final double[][] normalizedTrainImages = NormalizationHelper.normalize(trainImages);
-        System.out.println("done");
+        final double[][][] result = new double[2][][];
+        result[INDEX_OF_KAGGLE_IMAGES] = NormalizationHelper.normalize(trainImages);
+        result[INDEX_OF_KAGGLE_LABELS] = trainLabels;
+        return result;
+    }
 
-        System.out.println("Loading testing data");
-        final double[][] testLabels = loadLabels(MnistDownloader.MNIST_TEST_SET_LABELS_FILE.toString());
+    private static void prepareSubmissionData(final ModelWrapper modelWrapper, final String outpuPath) {
+        final String path = MnistTrainer.class.getClassLoader()
+                .getResource("com/dj/models/mnist/test.csv")
+                .getPath();
+        final double[][] testImages = readKaggleTestData(path);
 
-        final double[][] testImages = loadImages(MnistDownloader.MNIST_TEST_SET_IMAGES_FILE.toString());
-        System.out.println("done\n");
-        trainMnistNN(modelWrapper, trainLabels, normalizedTrainImages, testLabels, testImages);
-        SerializerHelper.serializeToFile(modelWrapper, "/tmp/mnist_kaggle.dj");
+        final StringBuilder outputResult = new StringBuilder();
+        outputResult.append("ImageId,Label\n");
+        IntStream.range(0, testImages.length).forEach(imageIndex -> {
+            final double[] image = testImages[imageIndex];
+            IntStream.range(0, image.length).forEach(pixelIndex -> {
+                modelWrapper.getInputLayer().get(pixelIndex).forwardSignalReceived(null, image[pixelIndex]);
+            });
+            int answer = 0;
+            double probability = -1.;
+            for (int i = 0; i < 10; i++) {
+                final double actualValue = (modelWrapper.getOutputLayer().get(i)).getForwardResult();
+                if (actualValue > probability) {
+                    probability = actualValue;
+                    answer = i;
+                }
+            }
+            outputResult.append(String.format("%d,%d\n", imageIndex, answer));
+        });
+        try(BufferedWriter kaggleResultWriter = new BufferedWriter(new FileWriter(new File(outpuPath)))) {
+            kaggleResultWriter.write(outputResult.toString());
+            kaggleResultWriter.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("writing Kaggle result failed", e);
+        }
+    }
+
+    private static double[][] readKaggleTestData(final String path) {
+        final File csvData = new File(path);
+        final CSVParser parser;
+        final List<CSVRecord> records;
+        try {
+            parser = CSVParser.parse(csvData, Charset.defaultCharset(), CSVFormat.EXCEL.withHeader());
+            records= parser.getRecords();
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("CSV parsing failed", e);
+        }
+
+        final double[][] testImages = new double[records.size()][784];
+        IntStream.range(0, records.size()).forEach(imageIndex ->
+                IntStream.range(0, 784).forEach(pixelIndex -> {
+                    testImages[imageIndex][pixelIndex] = Integer.parseInt(records.get(imageIndex).get(pixelIndex));
+                })
+        );
+        return NormalizationHelper.normalize(testImages);
     }
 
     private static void trainMnistNN(final ModelWrapper modelWrapper,
@@ -121,6 +189,7 @@ public class MnistTrainer {
                         i,
                         i1);
                 SerializerHelper.serializeToFile(modelWrapper, String.format("/tmp/mnist_model_checkpoint_%d.dj", i));
+                prepareSubmissionData(modelWrapper, String.format("/tmp/submission_checkpoint_%d.csv", i));
             }
         }, 2.);
         optimizer.train(context, inputLayer, outputLayer, trainImages, trainLabels, testImages, testLabels);
