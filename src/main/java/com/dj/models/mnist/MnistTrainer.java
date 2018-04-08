@@ -38,12 +38,12 @@ public class MnistTrainer {
 
     private static final int INDEX_OF_KAGGLE_LABELS = 1;
 
-    public static void downloadDataAndtrainMnistNN(final boolean debug) {
+    public static void downloadDataAndTrainMnistNN(final boolean debug) {
         final ModelWrapper modelWrapper = createTheModel(debug);
-        downloadDataAndtrainMnistNN(modelWrapper);
+        downloadDataAndTrainMnistNN(modelWrapper);
     }
 
-    public static void downloadDataAndtrainMnistNN(final ModelWrapper modelWrapper) {
+    public static void downloadDataAndTrainMnistNN(final ModelWrapper modelWrapper) {
         System.out.println("Downloading MNIst images");
         MnistDownloader.downloadMnist();
         System.out.println("done\n");
