@@ -35,6 +35,7 @@ import java.util.stream.IntStream;
 public class MnistTrainer {
 
     private static final int INDEX_OF_KAGGLE_IMAGES = 0;
+
     private static final int INDEX_OF_KAGGLE_LABELS = 1;
 
     public static void downloadDataAndtrainMnistNN(final boolean debug) {
@@ -135,7 +136,7 @@ public class MnistTrainer {
                     answer = i;
                 }
             }
-            outputResult.append(String.format("%d,%d\n", imageIndex, answer));
+            outputResult.append(String.format("%d,%d\n", imageIndex + 1, answer));
         });
         try(BufferedWriter kaggleResultWriter = new BufferedWriter(new FileWriter(new File(outpuPath)))) {
             kaggleResultWriter.write(outputResult.toString());
