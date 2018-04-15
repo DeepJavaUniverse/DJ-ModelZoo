@@ -1,5 +1,6 @@
 package com.dj.models.mnist;
 
+import com.dj.core.model.graph.Context;
 import com.dj.core.model.graph.Neuron;
 import com.dj.core.serializer.ModelWrapper;
 import com.dj.core.serializer.SerializerHelper;
@@ -32,7 +33,8 @@ public class TestMnistModel {
         ModelWrapper modelWrapper = SerializerHelper.deserializeFromFile(path);
         List<Neuron> inputLayer = modelWrapper.getInputLayer();
         List<Neuron> outputLayer = modelWrapper.getOutputLayer();
-        double error = MnistTrainer.calculateError(inputLayer, outputLayer, testImages, testLabels);
+        Context context = modelWrapper.getContext();
+        double error = MnistTrainer.calculateError(context, inputLayer, outputLayer, testImages, testLabels);
         assertTrue(error < .2);
     }
 }
