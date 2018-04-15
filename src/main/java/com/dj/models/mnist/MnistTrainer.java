@@ -39,7 +39,7 @@ public class MnistTrainer {
     private static final int INDEX_OF_KAGGLE_LABELS = 1;
 
     public static void downloadDataAndTrainMnistNN(final boolean debug) {
-        final ModelWrapper modelWrapper = createTheModel(debug);
+        final ModelWrapper modelWrapper = createModel(debug);
         downloadDataAndTrainMnistNN(modelWrapper);
     }
 
@@ -63,7 +63,7 @@ public class MnistTrainer {
     }
 
     public static void trainMnistNNOnKaggleData(final boolean debug) {
-        final ModelWrapper modelWrapper = createTheModel(debug);
+        final ModelWrapper modelWrapper = createModel(debug);
 
         System.out.println("Downloading MNIst images");
         MnistDownloader.downloadMnist();
@@ -258,10 +258,12 @@ public class MnistTrainer {
         return NormalizationHelper.normalize(trainImages);
     }
 
-    private static ModelWrapper createTheModel(final boolean debug) {
+    private static ModelWrapper createModel(final boolean debug) {
         final Random random = new Random();
         final double learningRate = 0.0005;
         final Context context = new Context(learningRate, debug);
+        context.setRegularizationLevel(3);
+        context.setRegularizationRate(0.2);
 
         System.out.println("Creating network");
         List<Neuron> inputLayer = createLayer(InputNeuron::new, 784);
@@ -277,7 +279,7 @@ public class MnistTrainer {
                 = createLayer(() ->
                         new ConnectedNeuron
                                 .Builder()
-                                .activationFunction(new Sigmoid(true))
+                                .activationFunction(new Sigmoid(false))
                                 .context(context)
                                 .build(),
                 10);
