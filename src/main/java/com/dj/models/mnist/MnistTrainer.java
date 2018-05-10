@@ -302,7 +302,7 @@ public class MnistTrainer {
     private static ModelWrapper createTheModel(final boolean debug) {
         final Random random = new Random();
         final double learningRate = 0.005;
-        final int batchSize = 500;
+        final int batchSize = 100;
         final Context context = new Context(learningRate, debug, batchSize);
 
         System.out.println("Creating network");
